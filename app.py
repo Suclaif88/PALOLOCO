@@ -2,71 +2,40 @@ import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import mediapipe as mp
 import cv2
-import base64
 
-st.title("🎵 Detección de dedos con sonidos - PALOLOCO")
+st.title("✋ Detección en Tiempo Real de Dedos")
 
-# Sonidos
-sound_files = [
-    "sounds/#fa.wav", "sounds/la.wav", "sounds/re.wav",
-    "sounds/#do.wav", "sounds/#sol.wav", "sounds/si.wav",
-    "sounds/la.wav", "sounds/re.wav", "sounds/#do.wav", "sounds/#sol.wav"
-]
-
-def play_audio(path):
-    with open(path, "rb") as f:
-        data = f.read()
-        b64 = base64.b64encode(data).decode()
-        st.markdown(f"""
-        <audio autoplay>
-            <source src="data:audio/wav;base64,{b64}" type="audio/wav">
-        </audio>
-        """, unsafe_allow_html=True)
-
-# Detección en tiempo real usando MediaPipe
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 
-class FingerSoundTransformer(VideoTransformerBase):
+class HandDetector(VideoTransformerBase):
     def __init__(self):
         self.hands = mp_hands.Hands(
-            static_image_mode=False,
             max_num_hands=2,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5,
-            model_complexity=0
+            min_detection_confidence=0.7,
+            min_tracking_confidence=0.7
         )
-        self.finger_state = [False] * 10
-
-    def is_finger_down(self, landmarks, tip, mcp):
-        return landmarks[tip].y > landmarks[mcp].y
 
     def transform(self, frame):
-        image = frame.to_ndarray(format="bgr24")
-        image = cv2.flip(image, 1)
-        results = self.hands.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        img = frame.to_ndarray(format="bgr24")
+        img = cv2.flip(img, 1)
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        results = self.hands.process(img_rgb)
+
+        total_fingers = 0
 
         if results.multi_hand_landmarks:
-            for h, hand_landmarks in enumerate(results.multi_hand_landmarks[:2]):
-                mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-                dedos_tip = [4, 8, 12, 16, 20]
-                dedos_mcp = [2, 5, 9, 13, 17]
+            for hand_landmarks in results.multi_hand_landmarks:
+                mp_drawing.draw_landmarks(img, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+                landmarks = hand_landmarks.landmark
+                fingers = [8, 12, 16, 20]
+                for i in fingers:
+                    if landmarks[i].y < landmarks[i - 2].y:
+                        total_fingers += 1
 
-                for i in range(5):
-                    index = i + h * 5
-                    if self.is_finger_down(hand_landmarks.landmark, dedos_tip[i], dedos_mcp[i]):
-                        if not self.finger_state[index]:
-                            play_audio(sound_files[index])
-                            self.finger_state[index] = True
-                    else:
-                        self.finger_state[index] = False
+        cv2.putText(img, f"Dedos levantados: {total_fingers}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-        return image
+        return img
 
-st.subheader("📷 Activa la cámara para detectar los dedos")
-webrtc_streamer(
-    key="paloloco-dedos",
-    video_transformer_factory=FingerSoundTransformer,
-    media_stream_constraints={"video": True, "audio": False},
-    async_transform=True,
-)
+webrtc_streamer(key="realtime-dedos", video_transformer_factory=HandDetector)
