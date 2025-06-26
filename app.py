@@ -1,7 +1,6 @@
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import mediapipe as mp
-import numpy as np
 import cv2
 import base64
 
@@ -11,25 +10,24 @@ st.title("🎵 Detección de dedos con sonidos - PALOLOCO")
 sound_files = [
     "sounds/#fa.wav", "sounds/la.wav", "sounds/re.wav",
     "sounds/#do.wav", "sounds/#sol.wav", "sounds/si.wav",
-    "sounds/la.wav", "sounds/re.wav", "sounds/#do.wav", "sounds/#sol.wav",
+    "sounds/la.wav", "sounds/re.wav", "sounds/#do.wav", "sounds/#sol.wav"
 ]
 
 def play_audio(path):
     with open(path, "rb") as f:
         data = f.read()
         b64 = base64.b64encode(data).decode()
-        audio_html = f"""
+        st.markdown(f"""
         <audio autoplay>
             <source src="data:audio/wav;base64,{b64}" type="audio/wav">
         </audio>
-        """
-        st.markdown(audio_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-# Detección de dedos con MediaPipe
+# Detección en tiempo real usando MediaPipe
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 
-class HandGestureDetector(VideoTransformerBase):
+class FingerSoundTransformer(VideoTransformerBase):
     def __init__(self):
         self.hands = mp_hands.Hands(
             static_image_mode=False,
@@ -46,8 +44,7 @@ class HandGestureDetector(VideoTransformerBase):
     def transform(self, frame):
         image = frame.to_ndarray(format="bgr24")
         image = cv2.flip(image, 1)
-        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        results = self.hands.process(rgb_image)
+        results = self.hands.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
 
         if results.multi_hand_landmarks:
             for h, hand_landmarks in enumerate(results.multi_hand_landmarks[:2]):
@@ -66,10 +63,10 @@ class HandGestureDetector(VideoTransformerBase):
 
         return image
 
-st.subheader("📷 Cámara del navegador")
+st.subheader("📷 Activa la cámara para detectar los dedos")
 webrtc_streamer(
-    key="paloloco",
-    video_transformer_factory=HandGestureDetector,
+    key="paloloco-dedos",
+    video_transformer_factory=FingerSoundTransformer,
     media_stream_constraints={"video": True, "audio": False},
     async_transform=True,
 )
