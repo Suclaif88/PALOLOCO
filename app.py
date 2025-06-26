@@ -4,7 +4,7 @@ import mediapipe as mp
 import cv2
 import base64
 
-st.title("🎵 Detector de Dedos Musical")
+st.title("🎵 Detector de Dedos con Sonido - PALOLOCO")
 
 sound_files = [
     "sounds/#fa.wav", "sounds/la.wav", "sounds/re.wav",
@@ -56,6 +56,6 @@ class HandTracker(VideoTransformerBase):
 
 webrtc_streamer(
     key="paloloco",
-    video_processor_factory=HandTracker,  # ✅ usar este
+    video_processor_factory=HandTracker,
     media_stream_constraints={"video": True, "audio": False},
 )
