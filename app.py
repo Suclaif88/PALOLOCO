@@ -15,12 +15,10 @@ st.markdown("""
 
 # Simular sonidos al presionar botones
 sound_files = [
-    "sounds/#fa.wav",
-    "sounds/la.wav",
-    "sounds/re.wav",
-    "sounds/#do.wav",
-    "sounds/#sol.wav"
+    "sounds/fa_sharp.wav", "sounds/la.wav", "sounds/re.wav",
+    "sounds/do_sharp.wav", "sounds/sol_sharp.wav"
 ]
+
 
 def play_audio(path):
     with open(path, "rb") as f:
