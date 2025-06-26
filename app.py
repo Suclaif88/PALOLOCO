@@ -71,7 +71,7 @@ webrtc_streamer(
     key="paloloco",
     video_processor_factory=HandDetector,
     media_stream_constraints={"video": True, "audio": False},
-    async_processing=True,
+    async_processing=False,  # ✅
 )
 
 # Renderizar sonidos desde hilo principal
